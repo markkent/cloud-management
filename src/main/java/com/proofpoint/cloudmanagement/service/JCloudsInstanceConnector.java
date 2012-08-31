@@ -39,9 +39,11 @@ import org.jclouds.compute.domain.NodeState;
 import org.jclouds.compute.domain.Processor;
 import org.jclouds.compute.domain.TemplateBuilder;
 import org.jclouds.compute.domain.Volume;
+import org.jclouds.compute.options.TemplateOptions;
 import org.jclouds.domain.Location;
 import org.jclouds.openstack.keystone.v2_0.config.CredentialType;
 import org.jclouds.openstack.keystone.v2_0.config.KeystoneProperties;
+import org.jclouds.openstack.nova.v1_1.compute.options.NovaTemplateOptions;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -72,14 +74,13 @@ public class JCloudsInstanceConnector implements InstanceConnector
 
     private final Map<String, ? extends Hardware> hardwareMap;
     private final Map<String, ? extends Location> locationMap;
-    private final String awsVpcSubnetId;
+    private final TemplateOptions templateOptions;
 
     public JCloudsInstanceConnector(final JCloudsConfig config)
     {
         Preconditions.checkNotNull(config);
 
         this.name = config.getName();
-        this.awsVpcSubnetId = config.getAwsVpcSubnetId();
 
         Properties overrides = new Properties();
         if (config.getLocation() != null) {
@@ -132,6 +133,8 @@ public class JCloudsInstanceConnector implements InstanceConnector
             }
         });
 
+        templateOptions = getProviderSpecificOptions(config);
+
         getAllInstances();
     }
 
@@ -150,14 +153,9 @@ public class JCloudsInstanceConnector implements InstanceConnector
                     .fromHardware(hardware)
                     .locationId(locationId);
 
-            if (awsVpcSubnetId != null) {
-                instanceTemplateBuilder.options(AWSEC2TemplateOptions.Builder.subnetId(awsVpcSubnetId).blockUntilRunning(false));
-            }
-            else {
-                instanceTemplateBuilder.options(computeService.templateOptions().blockUntilRunning(false));
-            }
+            instanceTemplateBuilder.options(templateOptions);
 
-            nodes = computeService.createNodesInGroup(groupName, 1, instanceTemplateBuilder.build());
+            nodes = computeService.createNodesInGroup(groupName, 1,  instanceTemplateBuilder.build());
         }
         catch (RunNodesException e) {
             log.error(e, "Couldn't start up instance requested by %s with size %s", groupName, sizeName);
@@ -322,6 +320,26 @@ public class JCloudsInstanceConnector implements InstanceConnector
                     .setLocation(locateParentMostZone(input.getLocation()).getId())
                     .setHostname(getFirst(concat(input.getPublicAddresses(), input.getPrivateAddresses()), input.getHostname()))
                     .build();
+        }
+    }
+
+    private static TemplateOptions getProviderSpecificOptions(JCloudsConfig config)
+    {
+        final String api = config.getApi();
+        final String defaultSecurityGroup = config.getDefaultSecurityGroup();
+
+        if (api.equals("aws-ec2")) {
+            AWSEC2TemplateOptions options = AWSEC2TemplateOptions.Builder.securityGroups(defaultSecurityGroup).blockUntilRunning(false);
+            if (config.getAwsVpcSubnetId() != null) {
+                options.subnetId(config.getAwsVpcSubnetId());
+            }
+            return options;
+        }
+        else if (api.equals("openstack-nova")) {
+            return NovaTemplateOptions.Builder.securityGroupNames(defaultSecurityGroup).blockUntilRunning(false);
+        }
+        else {
+            return TemplateOptions.Builder.blockUntilRunning(false);
         }
     }
 }

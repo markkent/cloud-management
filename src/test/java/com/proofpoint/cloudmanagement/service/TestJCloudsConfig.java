@@ -32,7 +32,8 @@ public class TestJCloudsConfig
                 .setDefaultImageId(null)
                 .setApi(null)
                 .setName(null)
-                .setAwsVpcSubnetId(null));
+                .setAwsVpcSubnetId(null)
+                .setDefaultSecurityGroup("default"));
     }
 
     @Test
@@ -47,6 +48,7 @@ public class TestJCloudsConfig
                         .put("api", "api")
                         .put("name", "name")
                         .put("aws-vpc-subnet-id", "aws-vpc-subnet-id")
+                        .put("default-security-group", "default-security-group")
                         .build(),
                 new JCloudsConfig()
                         .setLocation("http://localhost:8774")
@@ -55,7 +57,8 @@ public class TestJCloudsConfig
                         .setDefaultImageId("default-image-id")
                         .setApi("api")
                         .setName("name")
-                        .setAwsVpcSubnetId("aws-vpc-subnet-id"));
+                        .setAwsVpcSubnetId("aws-vpc-subnet-id")
+                        .setDefaultSecurityGroup("default-security-group"));
     }
 
 }

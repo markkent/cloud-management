@@ -28,6 +28,7 @@ public class JCloudsConfig
     private String name;
     private String api;
     private String awsVpcSubnetId;
+    private String defaultSecurityGroup = "default";
 
     @Config("api")
     public JCloudsConfig setApi(String api)
@@ -68,6 +69,13 @@ public class JCloudsConfig
     public JCloudsConfig setDefaultImageId(String defaultImageId)
     {
         this.defaultImageId = defaultImageId;
+        return this;
+    }
+
+    @Config("default-security-group")
+    public JCloudsConfig setDefaultSecurityGroup(String defaultSecurityGroup)
+    {
+        this.defaultSecurityGroup = defaultSecurityGroup;
         return this;
     }
 
@@ -116,5 +124,10 @@ public class JCloudsConfig
     public String getAwsVpcSubnetId()
     {
         return awsVpcSubnetId;
+    }
+
+    public String getDefaultSecurityGroup()
+    {
+        return defaultSecurityGroup;
     }
 }
